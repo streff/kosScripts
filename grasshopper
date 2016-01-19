@@ -1,0 +1,167 @@
+
+Lock throttle to 0.
+set emerg to 0.
+Set steer to UP + r(0,0,180).
+Set padheight to alt:radar.
+Lock alt to alt:radar - padheight.
+Set pad to latlng(latitude,longitude).
+Set coordinates to pad.
+Set maxheight to alt.
+Lock TargHDist to sqrt((((coordinates:lat - latitude) * 10430)^2) + (((coordinates:lng - longitude) * 10430)^2)).
+Set maxdiversion to TargHDist.
+Set KpAV to 0.300.
+Set KiAV to 0.000.
+Set KdAV to 0.050.
+Set integralAV to 0.
+Set outMaxAV to 25.
+Set outMinAV to -25.
+Set KpVT to 0.100.
+Set KiVT to 0.200.
+Set KdVT to 0.005.
+Set integralVT to 0.
+Set outMaxVT to 1.
+Set outMinVT to 0.2.
+Set KpLatV to 1.00.
+Set KiLatV to 0.00.
+Set KdLatV to 10.00.
+Set integralLatV to 0.
+Set outMaxLatV to 0.1.
+Set outMinLatV to -0.1.
+Set KpVP to 500.
+Set KiVP to 100.
+Set KdVP to 200.
+Set integralVP to 0.
+Set outMaxVP to 15.
+Set outMinVP to -15.
+Set KpLngV to 1.00.
+Set KiLngV to 0.00.
+Set KdLngV to 10.00.
+Set integralLngV to 0.
+Set outMaxLngV to 0.1.
+Set outMinLngV to -0.1.
+Set KpVY to 500.
+Set KiVY to 100.
+Set KdVY to 200.
+Set integralVY to 0.
+Set outMaxVY to 15.
+Set outMinVY to -15.
+Set waypoint1 to latlng(pad:lat, pad:lng).
+Set waypoint2 to latlng(pad:lat, pad:lng).
+Set waypoint3 to latlng(pad:lat, pad:lng).
+on AG2 {Set desiredAltitude to desiredAltitude - 10.PRESERVE. }.
+on AG3 {Set desiredAltitude to desiredAltitude + 10.PRESERVE. }.
+on AG4 {Set coordinates to waypoint1. PRESERVE.}.
+on AG5 {Set coordinates to waypoint2. Set desiredAltitude to 140. PRESERVE.}.
+on AG6 {Set coordinates to waypoint3. PRESERVE.}.
+on AG7 {Set waypoint2 to latlng(target:lat, target:lng). PRESERVE.}.
+on AG8 {Set waypoint3 to latlng(target:lat, target:lng). PRESERVE.}.
+on AG9 {Set coordinates to latlng(latitude,longitude). PRESERVE.}.
+on AG10 {Set wpNum to 99. PRESERVE. }.
+Stage.
+Print 3.
+Wait 1.
+Print 2.
+Wait 1.
+Print 1.
+Wait 1.
+Print "Blastoff!".
+Lock steering to steer.
+Set starttime to missiontime.
+Lock stagetime to missiontime - starttime.
+Set desiredAltitude to 100.
+Set targetAltitude to 0.
+Set ascend to 1.
+Set wpNum to 0.
+Set dt to 0.1.
+Set previousA to 0.
+Set previousV to 0.
+Set previousLat to latitude.
+Set previousLng to longitude.
+Set previousVelLat to 0.
+Set previousVelLng to 0.
+Until stagetime > 10 and alt < 1.5 {
+	Set velLat to (latitude - previousLat)/dt.
+	Set velLng to (longitude - previousLng)/dt.
+	If ascend = 1 and targetAltitude < desiredAltitude {
+		Set targetAltitude to min(desiredAltitude, targetAltitude + 20).
+	}.
+	If ascend = 0 and targetAltitude > desiredAltitude {
+		If wpNum > 2 {
+			Set targetAltitude to max(desiredAltitude, targetAltitude - 10).
+		}.
+	}.
+	Run AltitudeToVelocityPID(targetAltitude).
+	Set desiredVelocity to outAV.
+	Run VelocityToThrustPID(desiredVelocity).
+	Lock throttle to outVT.
+	Run LatitudeToVelocityPID.
+	Run LongitudeToVelocityPID.
+	Set desiredLatVelocity to outLatV.
+	Set desiredLngVelocity to outLngV.
+	Run LatVelocityToPitchPID(desiredLatVelocity).
+	Run LngVelocityToYawPID(desiredLngVelocity).
+	If alt > 5 {
+		Set steer to UP + r(outVP, outVY, 180).
+	}.
+	If alt <= 5 {
+		Set steer to UP + r(0, 0, 180).
+	}
+	Set previousA to alt.
+	Set previousV to verticalspeed.
+	Set previousVelLat to velLat.
+	Set previousVelLng to velLng.
+	Wait dt.
+	If (wpNum = 0) and (alt > (desiredAltitude * 0.1)) {
+		toggle legs.
+		Set wpNum to 1.
+		
+	}.
+	If (wpNum = 1) and (TargHDist < 10) {
+		Set ascend to 0.
+		Set wpNum to 2.
+	}
+	If (wpNum = 2) and (TargHDist < 10) {
+		Set wpNum to 3.
+	}
+		If (wpNum = 99) and (TargHDist < 10) {
+		Set coordinates to pad.
+		Set wpNum to 100.
+	}
+	If (wpNum = 100) and (TargHDist < 5) {
+		Set desiredAltitude to -1.
+		toggle legs.
+		Set outMaxVP to 1.
+		Set outMinVP to -1.
+		Set outMaxVY to 1.
+		Set outMinVY to -1.
+		Set wpNum to 101.
+	}
+	If alt > maxheight{
+		Set maxheight to alt.
+	}.
+	If TargHDist > maxdiversion{
+		Set maxdiversion to TargHDist.
+	}.
+		//If stage:liquidfuel < 20  and (alt:radar > 10){
+		//toggle legs.
+		//Set desiredAltitude to -7.
+		//Set coordinates to latlng(latitude,longitude).
+		//set emerg to 1.
+	//}.
+	clearscreen.
+	print "=======================".
+	print "LAT: " + latitude.
+	print "LON: " + longitude.
+	print "Distance to target: " + TargHDist.
+	print "Target: " + coordinates.
+	print "wpNum: " + wpNum.
+	print "desiredAltitude: " + desiredAltitude.
+	print "alt: " + alt:radar.
+	if emerg = 1 {print "EMERGENCY DESCENT - LOW FUEL".}.
+	print "=======================".
+	
+}.
+Print "Duration: " + stagetime.
+Print "Altitude: " + maxheight.
+Print "Lateral Diversion: " + maxdiversion.
+Print "Landing Distance: " + TargHDist.
