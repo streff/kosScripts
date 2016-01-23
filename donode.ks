@@ -41,6 +41,7 @@ list engines in engs.
 for eng in engs {
 if eng:flameout = "True" {set flamed to flamed + 1.}.
 }.
+return flamed.
 }.
 print "Total burn time for maneuver:  " + ROUND(burntime,2) + " s". // line 3
 

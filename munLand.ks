@@ -8,6 +8,7 @@ copy warpTo from 0.
 copy intercept from 0.
 copy land_noat_spot from 0.
 copy launch_noat from 0.
+copy circ_ap from 0.
 copy set_inc_lan from 0.
 copy grazehome from 0.
 rename grazehome to boot.
@@ -21,19 +22,17 @@ Copy LongitudeToVelocityPID from 0.
 Copy LatVelocityToPitchPID from 0.
 Copy LngVelocityToYawPID from 0.
 
-run launch(98000).
+
+//run launch(98000).
+
 wait 5.
-set panelList2 to ship:partsdubbed("SP-W 3x2 Photovoltaic Panels").
-for panel in panelList2{
-panel:GETMODULE("ModuleDeployableSolarPanel"):DOACTION("toggle panels",1).
-}.
-wait 5.
+
 set target to mun.
 run streff_hohmann.
 wait 5.
 run warpTo(ETA:TRANSITION).
 wait 5.
-run intercept(Mun,15000).
+run intercept(Mun,25000).
 wait 5.
 set panelList1 to ship:partsdubbed("SP-L 1x6 Photovoltaic Panels").
 for panel in panelList1{

@@ -64,12 +64,17 @@ Set previousVelLat to 0.
 Set previousVelLng to 0.
 
 Until status = "LANDED" {
+if stage:liquidfuel < 1 {stage.}.
 
 	if mAlt > 3000 {
 	set outMinAV to -100.
 	} else {
 	set outMinAV to -25.
 	}.
+	if TargHDist > 10000 {set desiredAltitude to 4000.} else {set desiredAltitude to 100.}.
+	
+	if lights = false and TargHDist < 2000 {lights on.}.
+	
 	
 	if  TargHDist < 5 and groundspeed < 2 {
 	
@@ -104,10 +109,10 @@ Until status = "LANDED" {
 		Set steer to UP + r(outVP, outVY, 180).
 	}.
 	if mAlt > 3000 {
-		Set outMaxVP to 80.
-		Set outMinVP to -80.
-		Set outMaxVY to 80.
-		Set outMinVY to -80.
+		Set outMaxVP to 60.
+		Set outMinVP to -60.
+		Set outMaxVY to 60.
+		Set outMinVY to -60.
 	} else {
 		Set outMaxVP to 30.
 		Set outMinVP to -30.

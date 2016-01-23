@@ -59,22 +59,22 @@ function make_node_t_deltav{
 	local nor_unit is VCRS(pro_unit,rad_unit).
 	return node(t,rad_unit*dv,nor_unit*dv,pro_unit*dv).
 }
+
+run circ_ap.
+
+
 set mySteer to retrograde.
 lock steering to mySteer.
 wait 2.
 
-//establish opposite longitude from target for deorbit burn
-//establish & hit inclination required to hit the latitude
-
 //tan[latitude] = 0.5 * tan[inclination]
-//Therefore...
 //inclination = arctan[tan[latitude] / 0.5]
 set targetInclination to arctan(tan(padTrgLat)).
 
-set h1 to r+((ship:apoapsis+ship:periapsis)/2).
-//set h2 to r+target:altitude.
-set h2 to r + 1000.
-set ra to r +(periapsis+apoapsis)/2.
+set h1 to (ship:apoapsis+ship:periapsis)/2.
+//set h2 to body:radius+target:altitude.
+set h2 to body:radius + latlng(padTrgLat,padTrgLng):Terrainheight.
+set ra to body:radius +(periapsis+apoapsis)/2.
 
 set CshipPeriod to ship:obt:period.
 //set CtgtPeriod to target:obt:period.
@@ -85,14 +85,16 @@ set CtgtPeriod1Deg to CtgtPeriod/360.
 //work out current phase angle to target
 //set cAngle1 to obt:lan+obt:argumentofperiapsis+obt:trueanomaly.
 set cAngle1 to ship:longitude.
+if cAngle1 < 0 {set cAngle1 to 180 + (180 - abs(cAngle1)).}.
 //set cAngle2 to target:obt:lan+target:obt:argumentofperiapsis+target:obt:trueanomaly.
 set cAngle2 to padTrgLng.
+if cAngle2 < 0 {set cAngle2 to 180 + (180 - abs(cAngle2)).}.
+if cAngle2 < cAngle1 {set cAngle2 to cAngle2 + 360.}.
 set CurrentPhs to cAngle2-cAngle1.
 set CurrentPhs to CurrentPhs-360*floor(CurrentPhs/360).
 
 //lead distance - amount of an orbit the target will do in the time taken to transfer from h1 to h2.
 //set Pt to 0.5*((h1+h2+(2*r))/(2*r+2*h2))^1.5.
-set h1 to ship:altitude.
 set hX to (h1+h2)/2.
 set Pt to 1/(2*sqrt(h2^3/hX^3)).
 //that same orbit chunk in degrees
@@ -108,8 +110,6 @@ set totalErrorDeg to PhaseError+additionalErrorDeg.
 
 set insertPoint to totalErrorDeg*CshipPeriod1Deg.
 
-
-
 //calculate deltaV required for transfer to targets altitude
 //set reqDV to sqrt((ship:mass*g)/(r+h1))*sqrt(2(r+h2)/((r+h1)+(r+h2)))-1.
 set ps to V(0,0,0) - body:position.
@@ -124,103 +124,48 @@ set deltaV to deltaV1 - va.
 set tiltPoint to insertPoint - (CshipPeriod * 0.25).
 set tiltAmount to targetInclination - ship:obt:inclination.
 set alignNode to change_inclination(TIME:SECONDS+tiltPoint, tiltAmount).
-add alignNode.
+//add alignNode.
 
 //add deorbit node
 SET transferNode to NODE(TIME:SECONDS+insertPoint, 0, 0, deltaV).
 add transferNode.
 
-//do tiltnode
+set betweenTime to insertPoint - tiltPoint.
+
+//do alignNode
 WARPTO(TIME:SECONDS + tiltPoint-60).
 run donode.
 remove alignNode.
-
-set betweenTime to insertPoint - tiltPoint.
-
-//do deorbitnode
 WARPTO(TIME:SECONDS + betweenTime-60).
+
+wait 2.
+//do transferNode
 run donode.
 wait 1.
 remove transferNode.
 
 //coast to PE
-WARPTO(TIME:SECONDS+(eta:periapsis*0.8)).
-until eta:apoapsis < eta:periapsis or alt:radar < 500 {
+WARPTO(TIME:SECONDS+(eta:periapsis*0.75)).
+
+until ship:longitude > padTrgLng*0.95 or alt:radar < 4000 {
+
 wait 1.
 
 }.
+set warp to 0.
 
-set align to 0.
-set mySteer to retrograde.
-lock align to abs( cos(facing:pitch) - cos(mySteer:pitch) )
-                  + abs( sin(facing:pitch) - sin(mySteer:pitch) )
-                  + abs( cos(facing:yaw) - cos(mySteer:yaw) )
-                  + abs( sin(facing:yaw) - sin(mySteer:yaw) ).
-
-lock steering to mySteer.
-until align < 0.3 {wait 0.1.}.
-
-SET northPole TO latlng(90,0).
-LOCK retroOrbitDirection TO mod(360 - northPole:bearing,360).
-set pAng to 5.
-set vSetpoint to -10. //target vertical speed
-set altGate1 to false.
-set prevV to 0.
-set prevSV to groundspeed+100.
-set KdV to 0.001.
-set KpV to 0.05.
-set mySteer TO heading(retroOrbitDirection,pAng).
-wait until align < 0.05.
-lock throttle to 8*(ship:mass*g/ship:maxthrust).
-set foreVec to ship:facing:forevector.
-set travelVec to ship:velocity:surface.
-lock checkAng to vAng(foreVec, travelVec).
-
-until checkAng < 90 or groundspeed < 10 {
-if flamecheck() > 0 {stage. wait 0.25.}.
-if groundspeed < 100 {lock throttle to 4*(ship:mass*g/ship:maxthrust).}.
-set currentV to verticalspeed.
-set ttg to alt:radar/currentV.
-set vErr to vSetpoint-currentV.
-set vDer to (currentV-prevV)/dt.
-set foreVec to ship:facing:forevector.
-set travelVec to ship:velocity:surface.
-
-set vOut to (KpV*vErr) + (KdV*vDer).
-
-set pAng to max(-1,(min(89,(pAng+vOut)))).
-set mySteer TO heading(retroOrbitDirection,pAng).
-set prevV to currentV.
-set prevSV to groundspeed.
-clearscreen.
-print "checkAng: " + checkAng.
-print "currentV: " + currentV.
-print "currentAlt: " + alt:radar.
-print "Time to ground@this rate: " + round(ttg).
-print "vErr: " + vErr.
-print "vDer: " + vDer.
-print "vOut: " + vOut.
-print "pAng: " + pAng.
-print "KdV: " + KdV.
-print "KpV: " + KpV.
-if altGate1 = false and alt:radar < 200 {set vSetpoint to 0. set altGate1 to true.}.
-wait dT.
-}.
-
-//phase2 - 
-set TargHDist to 0.
-set mySteer to retrograde.
-lock steering to mySteer.
+Set rootPad to latlng(padTrgLat, padTrgLng).
+lock TargHDist to sqrt(((pad:lat - latitude)^2) + ((pad:lng - longitude)^2))/scaleLength.
+lock steering to retrograde.
 wait 2.
 lock throttle to 1.
-until verticalspeed > -2 {
-if flamecheck() > 0 {stage.}.  //staging call if engine burns out
-wait 0.1.
-}.
-set cThrust to getThrust().
-set thrott to 1.0*((ship:mass*hrg)/cThrust).
-lock throttle to thrott.
+until groundspeed < 50 {
+if flamecheck() > 0 { lock throttle to 0. wait 0.5. stage. wait 0.5.}. 
 
+wait 0.1.
+
+}.
+lock throttle to 0.
 
 //recover for vertical
 //pick a spot
@@ -265,8 +210,10 @@ if (largerAngle < 7) {
 return true.
 }.
 }.
-Set rootPad to latlng(latitude,longitude).
+
 set padChosen to false.
+Set rootPad to latlng(padTrgLat, padTrgLng).
+lock TargHDist to sqrt(((pad:lat - latitude)^2) + ((pad:lng - longitude)^2))/scaleLength.
 
 until padChosen = true {
 
@@ -296,7 +243,6 @@ wait 3.
 lock throttle to 0.
 //vertical descent
 unlock all.
-lights on.
 run landVert(pad).
-lights off.
+
 

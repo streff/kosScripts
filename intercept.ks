@@ -6,11 +6,6 @@ set bodyRadius to body:radius.
 set bodyMass to body:mass.
 SET g TO BODY:MU / BODY:RADIUS^2.
 
-lock dirRadial to ship:obt:velocity:orbit:direction + r(0,90,0).
-lock dirAantiradial to ship:obt:velocity:orbit:direction + r(0,-90,0).
-lock dirNormal to ship:obt:velocity:orbit:direction + r(-90,0,0).
-lock dirAntinormal to ship:obt:velocity:orbit:direction + r(90,0,0).
-
 declare function flamecheck {
 set flamed to 0.
 list engines in engs.
@@ -40,7 +35,7 @@ wait 1.
 //avoid collisions
 if periapsis < tgtPeriapsis {
 print "Periapsis too low, raising.".
-set mySteer to dirRadial.
+set mySteer to heading(90,0).
 
 wait until align < 0.05.
 
