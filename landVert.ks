@@ -23,36 +23,35 @@ Set outMaxVT to 1.
 Set outMinVT to 0.01.
 Set KpLatV to 1.0.
 Set KiLatV to 0.0.
-Set KdLatV to 12.00.
+Set KdLatV to 14.00. //12
 Set integralLatV to 0.
-Set outMaxLatV to 0.05.
-Set outMinLatV to -0.05.
+Set outMaxLatV to 0.03.
+Set outMinLatV to -0.03.
 Set KpVP to 500.
 Set KiVP to 100.
 Set KdVP to 200.
 Set integralVP to 0.
-Set outMaxVP to 25.
-Set outMinVP to -25.
+Set outMaxVP to 45.
+Set outMinVP to -45.
 Set KpLngV to 1.0.
 Set KiLngV to 0.0.
-Set KdLngV to 12.00.
+Set KdLngV to 14.00. //12
 Set integralLngV to 0.
-Set outMaxLngV to 0.05.
-Set outMinLngV to -0.05.
+Set outMaxLngV to 0.03.
+Set outMinLngV to -0.03.
 Set KpVY to 500.
 Set KiVY to 100.
 Set KdVY to 200.
 Set integralVY to 0.
-Set outMaxVY to 25.
-Set outMinVY to -25.
-Set waypoint1 to latlng(pad:lat, pad:lng).
+Set outMaxVY to 45.
+Set outMinVY to -45.
 
 Wait 0.5.
 Lock steering to steer.
 Set starttime to missiontime.
 
-Set desiredAltitude to 100.
-Set targetAltitude to 0.
+Set desiredAltitude to 5000.
+Set targetAltitude to 5000.
 
 
 Set dt to 0.1.
@@ -66,24 +65,39 @@ Set previousVelLng to 0.
 Until status = "LANDED" {
 if stage:liquidfuel < 1 {stage.}.
 
-	if mAlt > 3000 {
-	set outMinAV to -100.
-	} else {
-	set outMinAV to -25.
-	}.
-	if TargHDist > 10000 {set desiredAltitude to 4000.} else {set desiredAltitude to 100.}.
+	//if mAlt > 3000 {
+	//set outMinAV to -100.
+	//Set outMaxVP to 85.
+	//Set outMinVP to -85.
+	//Set outMaxVY to 85.
+	//Set outMinVY to -85.
+	//} else {
+	//if groundspeed < 15 {
+	//set outMinAV to -25.
+	//Set outMaxVP to 25.
+	//Set outMinVP to -25.
+	//Set outMaxVY to 25.
+	//Set outMinVY to -25.
+	//}.
+	//}.
 	
-	if lights = false and TargHDist < 2000 {lights on.}.
+	if TargHDist > 1000 {set desiredAltitude to min(TargHDist,5000).} else {set desiredAltitude to 500.}.
+	
+	if lights = false and TargHDist < 1000 {lights on.}.
 	
 	
 	if  TargHDist < 5 and groundspeed < 2 {
 	
 		if (legs = false) {
 			toggle legs.
+			set desiredAltitude to 20.
+			Set outMinAV to -10.
+
 		}.
 				
-		if groundspeed < 1 and TargHDist < 5 {
-			set desiredAltitude to -3. Set outMinAV to -5.
+		if groundspeed < 0.5 and TargHDist < 3 {
+			set desiredAltitude to -3.
+			Set outMinAV to -3.
 		}.	
 		
 	}.
@@ -107,21 +121,10 @@ if stage:liquidfuel < 1 {stage.}.
 	Run LngVelocityToYawPID(desiredLngVelocity).
 	If mAlt > 5 {
 		Set steer to UP + r(outVP, outVY, 180).
-	}.
-	if mAlt > 3000 {
-		Set outMaxVP to 60.
-		Set outMinVP to -60.
-		Set outMaxVY to 60.
-		Set outMinVY to -60.
 	} else {
-		Set outMaxVP to 30.
-		Set outMinVP to -30.
-		Set outMaxVY to 30.
-		Set outMinVY to -30.
+		Set steer to UP + r(max(-5, min(outVP, 5)), max(-5, min(outVY, 5)), 180).
 	}.
-		
 
-	
 	Set previousA to mAlt.
 	Set previousV to verticalspeed.
 	Set previousVelLat to velLat.

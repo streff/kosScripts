@@ -71,22 +71,18 @@ wait 2.
 //inclination = arctan[tan[latitude] / 0.5]
 set targetInclination to arctan(tan(padTrgLat)).
 
-set h1 to (ship:apoapsis+ship:periapsis)/2.
-//set h2 to body:radius+target:altitude.
-set h2 to body:radius + latlng(padTrgLat,padTrgLng):Terrainheight.
+set h1 to bodyRadius + ((ship:apoapsis+ship:periapsis)/2).
+set h2 to body:radius + latlng(padTrgLat,padTrgLng):Terrainheight+5000.
 set ra to body:radius +(periapsis+apoapsis)/2.
 
 set CshipPeriod to ship:obt:period.
-//set CtgtPeriod to target:obt:period.
 set CtgtPeriod to Body:ROTATIONPERIOD.
 set CshipPeriod1Deg to CshipPeriod/360.
 set CtgtPeriod1Deg to CtgtPeriod/360.
 
 //work out current phase angle to target
-//set cAngle1 to obt:lan+obt:argumentofperiapsis+obt:trueanomaly.
 set cAngle1 to ship:longitude.
 if cAngle1 < 0 {set cAngle1 to 180 + (180 - abs(cAngle1)).}.
-//set cAngle2 to target:obt:lan+target:obt:argumentofperiapsis+target:obt:trueanomaly.
 set cAngle2 to padTrgLng.
 if cAngle2 < 0 {set cAngle2 to 180 + (180 - abs(cAngle2)).}.
 if cAngle2 < cAngle1 {set cAngle2 to cAngle2 + 360.}.
@@ -94,11 +90,15 @@ set CurrentPhs to cAngle2-cAngle1.
 set CurrentPhs to CurrentPhs-360*floor(CurrentPhs/360).
 
 //lead distance - amount of an orbit the target will do in the time taken to transfer from h1 to h2.
-//set Pt to 0.5*((h1+h2+(2*r))/(2*r+2*h2))^1.5.
 set hX to (h1+h2)/2.
-set Pt to 1/(2*sqrt(h2^3/hX^3)).
+//time to complete transfer orbit in full
+set pT to 2*constant:pi*sqrt((hX^3)/body:mu).
+//half that
+set pT to pT*0.5.
+
 //that same orbit chunk in degrees
-set Phshft to 360*Pt.
+//set Phshft to 360*Pt.
+set Phshft to (pT/CtgtPeriod)*360.
 set PhsInsert to 180 - Phshft.
 
 set PhaseError to CurrentPhs - PhsInsert.
@@ -124,7 +124,7 @@ set deltaV to deltaV1 - va.
 set tiltPoint to insertPoint - (CshipPeriod * 0.25).
 set tiltAmount to targetInclination - ship:obt:inclination.
 set alignNode to change_inclination(TIME:SECONDS+tiltPoint, tiltAmount).
-//add alignNode.
+add alignNode.
 
 //add deorbit node
 SET transferNode to NODE(TIME:SECONDS+insertPoint, 0, 0, deltaV).
@@ -136,6 +136,7 @@ set betweenTime to insertPoint - tiltPoint.
 WARPTO(TIME:SECONDS + tiltPoint-60).
 run donode.
 remove alignNode.
+wait 3.
 WARPTO(TIME:SECONDS + betweenTime-60).
 
 wait 2.
@@ -145,23 +146,39 @@ wait 1.
 remove transferNode.
 
 //coast to PE
-WARPTO(TIME:SECONDS+(eta:periapsis*0.75)).
-
-until ship:longitude > padTrgLng*0.95 or alt:radar < 4000 {
-
-wait 1.
-
-}.
-set warp to 0.
-
+set scaleLength to 360/((2*body:radius)*3.14).
 Set rootPad to latlng(padTrgLat, padTrgLng).
-lock TargHDist to sqrt(((pad:lat - latitude)^2) + ((pad:lng - longitude)^2))/scaleLength.
+lock TargHDist to sqrt(((rootPad:lat - latitude)^2) + ((rootPad:lng - longitude)^2))/scaleLength.
+set ispsum to 0.
+set maxthrustlimited to 0.
+LIST ENGINES in MyEngines.
+for engine in MyEngines {
+    if engine:ISP > 0 {
+        set ispsum to ispsum + (engine:MAXTHRUST / engine:ISP).
+        set maxthrustlimited to maxthrustlimited + (engine:MAXTHRUST * (engine:THRUSTLIMIT / 100) ).
+    }
+}
+set ispavg to ( getThrust() / ispsum ).
+set g0 to 9.82.
+set ve to ispavg * g0.
+set dv to ship:velocity:orbit:mag.
+set m0 to SHIP:MASS.
+set Th to maxthrustlimited.
+set e  to CONSTANT:E.
+set burntime to (m0 * ve / Th) * (1 - e^(-dv/ve)).
 lock steering to retrograde.
-wait 2.
-lock throttle to 1.
-until groundspeed < 50 {
-if flamecheck() > 0 { lock throttle to 0. wait 0.5. stage. wait 0.5.}. 
 
+WARPTO(TIME:SECONDS+(eta:periapsis-(burntime*1.1))).
+until eta:periapsis < burntime {wait 1.}.
+set warp to 0.
+clearscreen.
+print "Decelerate".
+lock steering to retrograde.
+wait 1.
+lock throttle to 1.
+until groundspeed < 20 {
+if flamecheck() > 0 { lock throttle to 0. wait 0.5. stage. wait 0.5.}. 
+if ship:verticalspeed < -10 and alt:radar < 3000 {lock steering to retrograde + R(0,-10,0).} else {lock steering to retrograde + R(0,0,0).}.
 wait 0.1.
 
 }.
@@ -169,7 +186,7 @@ lock throttle to 0.
 
 //recover for vertical
 //pick a spot
-set scaleLength to 360/((2*body:radius)*3.14).
+
 set iPad to 0.
 declare function padFlat {
 
@@ -213,7 +230,7 @@ return true.
 
 set padChosen to false.
 Set rootPad to latlng(padTrgLat, padTrgLng).
-lock TargHDist to sqrt(((pad:lat - latitude)^2) + ((pad:lng - longitude)^2))/scaleLength.
+lock TargHDist to sqrt(((rootPad:lat - latitude)^2) + ((rootPad:lng - longitude)^2))/scaleLength.
 
 until padChosen = true {
 

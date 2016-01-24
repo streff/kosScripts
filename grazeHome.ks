@@ -3,11 +3,7 @@ run set_inc_lan.
 if body = body("Mun") or body = body("Minmus") {
 set mysteer to prograde.
 SET g TO BODY:MU / BODY:RADIUS^2.
-set align to 0.
-lock align to abs( cos(facing:pitch) - cos(mySteer:pitch) )
-                  + abs( sin(facing:pitch) - sin(mySteer:pitch) )
-                  + abs( cos(facing:yaw) - cos(mySteer:yaw) )
-                  + abs( sin(facing:yaw) - sin(mySteer:yaw) ).
+
 
 lock dirRadial to ship:obt:velocity:orbit:direction + r(0,90,0).
 lock dirAantiradial to ship:obt:velocity:orbit:direction + r(0,-90,0).
@@ -20,31 +16,37 @@ lock STEERING to mysteer.
 set tinc to 0.
 set clan to ship:obt:lan.
 set_inc_lan(tinc,clan).
-set myVang to VANG(ship:velocity:orbit, (V(0,0,0) - body:orbit:velocity:orbit)).
-set vangPeriod to ship:obt:period / 360.
-if body:body:altitudeof(ship:position) > body:body:altitudeOf(body:position) {
-set timetoVang to vangPeriod * (180 + (180 - myVang)).
-} else {
-set timetoVang to vangPeriod * myVang.
-}.
-set timetoVang to timetoVang - 15.
-//run warpTo(timetoVang). **needs fixed.**
 
-set warp to 0.
+
+set myVang to VANG(ship:velocity:orbit, (V(0,0,0) - body:orbit:velocity:orbit)).
+
+
+set warp to 3.
 until myVang < 10 {
 clearscreen.
 print "me: " + ship:velocity:orbit.
 print "body: " + body:orbit:velocity:orbit.
 print "vang: " + VANG(ship:velocity:orbit, (V(0,0,0) - body:orbit:velocity:orbit)).
 set myVang to VANG(ship:velocity:orbit, (V(0,0,0) - body:orbit:velocity:orbit)).
-wait 1.
+wait 0.5.
 }.
-//escape calc
-// sqrt of 2GM over R
+
 set warp to 0.
 lock throttle to 0.
-set ReqEscapeVel to sqrt((2*constant:G)* body:mass/body:radius).
-set escapeVel to ReqEscapeVel - ship:velocity:orbit:mag.
+
+//calculate deltaV required for transfer to target altitude
+set h1 to r+((ship:apoapsis+ship:periapsis)/2).
+set h2 to body:soiradius + 1000.
+set ra to r +(periapsis+apoapsis)/2.
+set ps to V(0,0,0) - body:position.
+set smas to ps:mag.
+set vom to velocity:orbit:mag.
+set va to sqrt( vom^2 - 2*body:mu*(1/ra - 1/(r + altitude))).
+set smah to (ra + h2)/2.
+set deltaV1 to sqrt(va^2 - body:mu * (1/smah - 1/smas)).
+set escapeVel to (2*deltaV1) - va.
+
+
 SET orbitNode to NODE( TIME:SECONDS+15, 0, 0, escapeVel).
 add orbitNode.
 run donode.
@@ -54,6 +56,13 @@ remove orbitNode.
 if orbit:hasnextpatch = true {
 if orbit:nextpatch:periapsis < 20000 {
 lock steering to retrograde.
+ wait 4.
+ lock throttle to 0.3.
+ until orbit:nextpatch:periapsis > 20000 {wait 0.1.}.
+lock throttle to 0.
+}.
+if orbit:nextpatch:periapsis > 100000 {
+lock steering to prograde.
  wait 4.
  lock throttle to 0.3.
  until orbit:nextpatch:periapsis > 20000 {wait 0.1.}.

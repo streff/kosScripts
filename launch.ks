@@ -48,7 +48,7 @@ wait 1.
 stage.
 
 set thrott to 1.
-until altitude > 1000 {
+until altitude > 500 {
 
 clearscreen.
 
@@ -69,7 +69,7 @@ lock mysteer to up + R(0,gturn,180).
 
 until gturn <= -65 or apoapsis > FINAL {
 
-if flamecheck() > 0 {set thrott to 0. stage. wait 1.}.
+if flamecheck() > 0 {set thrott to 0. stage. wait 0.5.}.
 
 set cThrust to getThrust().
 set thrott to 1.6*((ship:mass*hrg)/cThrust).
@@ -88,9 +88,11 @@ print "align: " + align.
 print "thrust: " + getThrust().
 print "ship:mass: " + ship:mass.
 print "hrg: " + hrg.
+print "AP: " + ship:apoapsis.
+print "V: " + ship:velocity:orbit:mag.
 print "twr: " + cThrust/(ship:mass*hrg).
-
-wait 0.3.
+print "current twr: " + (cThrust*min(throttle,1))/(ship:mass*hrg).
+wait 1.
 
 }.
 clearscreen.
@@ -105,6 +107,8 @@ print "holding 65 from vert".
 print "AP: " + ship:apoapsis.
 print "V: " + ship:velocity:orbit:mag.
 print "thrust: " + getThrust().
+print "twr: " + cThrust/(ship:mass*hrg).
+print "current twr: " + (cThrust*min(throttle,1))/(ship:mass*hrg).
 wait 1.
 
 }.
@@ -113,7 +117,7 @@ wait 1.
 RCS on.
  
 
-until apoapsis > FINAL AND altitude > 70000 {
+until apoapsis > FINAL AND altitude > 70001 {
 
 clearscreen.
 
@@ -127,7 +131,7 @@ set a2 to altitude/FINAL.
 
 set a2r to round(a2,2).
 
-if a2r > 1 {set gturn to -90.} else if a2r < 0.65 {set gturn to -55.} else {set gturn to 0-(a2r*90).}.
+if a2r > 1 {set gturn to -90.} else if a2r < 0.65 {set gturn to -65.} else {set gturn to 0-(a2r*90).}.
 
  
 

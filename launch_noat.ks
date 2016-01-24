@@ -16,7 +16,7 @@ lock throttle to 1.
 
 wait until apoapsis > 500.
 
-set mysteer to up + R(0,45,180).
+set mysteer to up + R(0,-45,180).
 
 wait until apoapsis > 15000.
 lock throttle to 0.
@@ -47,7 +47,6 @@ print "Circularising..".
 run donode.
 
 remove orbitNode.
-  
 
 clearscreen.
 print "......................".

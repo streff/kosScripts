@@ -23,7 +23,8 @@ Copy LatVelocityToPitchPID from 0.
 Copy LngVelocityToYawPID from 0.
 
 
-//run launch(98000).
+
+run launch(98000).
 
 wait 5.
 
@@ -32,12 +33,9 @@ run streff_hohmann.
 wait 5.
 run warpTo(ETA:TRANSITION).
 wait 5.
-run intercept(Mun,25000).
+run intercept(Mun,50000).
 wait 5.
-set panelList1 to ship:partsdubbed("SP-L 1x6 Photovoltaic Panels").
-for panel in panelList1{
-panel:GETMODULE("ModuleDeployableSolarPanel"):DOACTION("toggle panels",1).
-}.
+
 
 //set inclination to pick rough landing spot
 run set_inc_lan.
