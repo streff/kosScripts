@@ -81,7 +81,7 @@ if stage:liquidfuel < 1 {stage.}.
 	//}.
 	//}.
 	
-	if TargHDist > 1000 {set desiredAltitude to min(TargHDist,5000).} else {set desiredAltitude to 500.}.
+	if TargHDist > 3000 {set desiredAltitude to min(TargHDist,5000).} else {set desiredAltitude to 500.}.
 	
 	if lights = false and TargHDist < 1000 {lights on.}.
 	
@@ -94,8 +94,13 @@ if stage:liquidfuel < 1 {stage.}.
 			Set outMinAV to -10.
 
 		}.
-				
-		if groundspeed < 0.5 and TargHDist < 3 {
+		
+		if groundspeed < 5 and TargHDist < 10 {
+			set desiredAltitude to 15.
+			Set outMinAV to -15.
+		}.	
+		
+		if groundspeed < 0.25 and TargHDist < 2 {
 			set desiredAltitude to -3.
 			Set outMinAV to -3.
 		}.	

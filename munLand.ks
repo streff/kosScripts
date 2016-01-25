@@ -23,7 +23,6 @@ Copy LatVelocityToPitchPID from 0.
 Copy LngVelocityToYawPID from 0.
 
 
-
 run launch(98000).
 
 wait 5.
